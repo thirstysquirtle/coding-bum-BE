@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"wut/ent"
+	"wut/ent/user"
 
 	_ "github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
@@ -17,11 +18,11 @@ func SetupDBConnection() *DbClient {
 
 	client, err := ent.Open("postgres", "host=localhost port=5432 user=myuser dbname=test1 password=mypassword sslmode=disable")
 	if err != nil {
-		fmt.Printf("failed opening connection to postgres: %v", err)
+		fmt.Println("failed opening connection to postgres: %w", err)
 	}
 
 	if err := client.Schema.Create(context.Background()); err != nil {
-		fmt.Printf("failed creating schema resources: %v", err)
+		fmt.Println("failed creating schema resources: %w", err)
 	}
 	return &DbClient{client}
 }
@@ -32,7 +33,7 @@ func (dbI *DbClient) CreateUser(ctx context.Context, email, password string) (*e
 	if err != nil {
 		return nil, fmt.Errorf("failed hashing password: %w", err)
 	}
-
+	fmt.Println(hash, "  ", password)
 	u, err := dbI.Client.User.
 		Create().
 		SetUsername("test").
@@ -45,6 +46,23 @@ func (dbI *DbClient) CreateUser(ctx context.Context, email, password string) (*e
 	}
 	// fmt.Println("user was created: ", u)
 	return u, nil
+}
+
+func (dbI *DbClient) AuthUser(ctx context.Context, email, password string) (*ent.User, error) {
+	user, err := dbI.Client.User.Query().
+		Where(user.EmailEQ(email)).
+		Only(ctx)
+	if ent.IsNotFound(err) {
+		return nil, fmt.Errorf("email doesn't exist")
+	} else if err != nil {
+		return nil, fmt.Errorf("server side error")
+	}
+	err = bcrypt.CompareHashAndPassword(user.PassHash, []byte(password))
+	if err == nil {
+		return user, nil
+	} else {
+		return nil, fmt.Errorf("password does not match")
+	}
 }
 
 // func getSecret() []byte {

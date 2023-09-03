@@ -3,3 +3,5 @@ tmp/**
 ent/*
 !ent/schema/
 *.html
+svelte_build/
+svelte_build/**
