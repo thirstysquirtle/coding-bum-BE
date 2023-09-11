@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"wut/auth"
 	"wut/db"
+	"wut/stripePi"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -20,7 +21,7 @@ func main() {
 	dbClient := db.SetupDBConnection()
 	defer (*dbClient).Client.Close()
 	auth.SetupLoginRoutes(app, dbClient)
-
+	stripePi.SetupStripeRoutes(app)
 	app.Static("/", "svelte_build/")
 
 	app.Get("/", func(c *fiber.Ctx) error {
