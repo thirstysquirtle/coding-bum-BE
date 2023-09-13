@@ -1,10 +1,11 @@
 package main
 
 import (
+	"context"
 	"wut/db"
 
 	"fmt"
-	"wut/stripePi"
+	"wut/paymentFlow"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -22,7 +23,7 @@ func main() {
 	db.SetupDBConnection()
 	// defer db.PostgresPool.Close()
 	// auth.SetupLoginRoutes(app, dbClient)
-	stripePi.SetupStripeRoutes(app)
+	paymentFlow.SetupPaymentFlow(app)
 	app.Static("/", "svelte_build/")
 
 	app.Get("/", func(c *fiber.Ctx) error {
@@ -32,7 +33,10 @@ func main() {
 	// if err != nil {
 	// 	panic(err)
 	// }
-
+	// db.Db.UpdateUserPass(context.Background(), sqlc.UpdateUserPassParams{PassHash: []byte("test"), Email: "test"})
+	pass, err := db.Db.GetUserPass(context.Background(), "test")
+	fmt.Println(pass)
+	fmt.Println(err)
 	err = app.Listen(":3000")
 	fmt.Println("wut: %w", err)
 	fmt.Println("exit")

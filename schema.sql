@@ -5,7 +5,7 @@ CREATE TABLE users (
     created_date DATE NOT NULL DEFAULT CURRENT_DATE,
     last_jwt_revoke_date DATE NOT NULL DEFAULT CURRENT_DATE,
     username varchar(20) NOT NULL,
-    order_num varchar(36) NOT NULL,
+    payment_intent varchar(36) NOT NULL UNIQUE,
     email varchar(254) UNIQUE NOT NULL
 );
 

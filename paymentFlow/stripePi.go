@@ -1,4 +1,4 @@
-package stripePi
+package paymentFlow
 
 import (
 	"fmt"
@@ -9,13 +9,14 @@ import (
 	"github.com/stripe/stripe-go/v75/paymentintent"
 )
 
-func SetupStripeRoutes(app *fiber.App) {
+func SetupPaymentFlow(app *fiber.App) {
 	// This is your test secret API key.
 	stripe.Key = "sk_test_51NXI07EcYmsYVNOjkRA66IiQgIDt1ykK42IKEhqFpI7Z8R53ziPcNJ3hlWlqme3YRXtKL8ZmFobslouN1Trr5WdU009OzHQyiM"
 	app.Get("/account-creation-success", func(c *fiber.Ctx) error {
 
 		return c.JSON(fiber.Map{"email": c.Query("email"), "username": c.Query("username"), "pi": c.Query("payment_intent")})
 	})
+
 	app.Post("/create-payment-intent", func(c *fiber.Ctx) error {
 		var req struct {
 			DonationAmt int64  `json:"donationAmt"`
@@ -65,7 +66,7 @@ func SetupStripeRoutes(app *fiber.App) {
 		pi, err := paymentintent.Get(piSuccess.ID, &stripe.PaymentIntentParams{})
 		fmt.Println(pi.Status)
 
-		if pi.Status == stripe.PaymentIntentStatusSucceeded {
+		if pi.Status == stripe.PaymentIntentStatusProcessing || pi.Status == stripe.PaymentIntentStatusSucceeded {
 			return c.JSON(fiber.Map{"status": "sucess"})
 		}
 		if err != nil {
@@ -74,5 +75,6 @@ func SetupStripeRoutes(app *fiber.App) {
 		return c.JSON(fiber.Map{"status": "fail"})
 
 	})
+	// app.Post("/")
 
 }
