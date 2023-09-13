@@ -5,3 +5,4 @@ ent/*
 *.html
 svelte_build/
 svelte_build/**
+sqlc/**
