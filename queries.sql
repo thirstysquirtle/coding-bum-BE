@@ -1,4 +1,4 @@
--- name: CreateUser :copyfrom
+-- name: CreateUser :exec
 INSERT INTO users (email, username, order_num ) VALUES ($1, $2, $3);
 
 -- name: getUserPass :one

@@ -17,21 +17,6 @@ var isTest bool = false
 
 func SetupCustomAuth(app *fiber.App, dbCl *db.DbClient) {
 	GetSecret()
-	app.Post("/auth/custom/register", func(c *fiber.Ctx) error {
-		fmt.Println("test ", string(c.Body()))
-		user, err := dbCl.CreateUser(c.Context(), c.FormValue("email"), c.FormValue("password"))
-		if err != nil {
-			fmt.Println("registration error: %w", err)
-			return c.JSON(fiber.Map{"error": err.Error()})
-		}
-		cookie, err := createCookieJWT(user)
-		if err != nil {
-			fmt.Println("cookie creation error: %w", err)
-			return c.JSON(fiber.Map{"error": err.Error()})
-		}
-		c.Cookie(cookie)
-		return c.JSON("authentication succesful")
-	})
 
 	app.Post("/auth/custom/login", func(c *fiber.Ctx) error {
 		form, err := c.MultipartForm()

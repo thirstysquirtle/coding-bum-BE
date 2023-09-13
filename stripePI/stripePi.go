@@ -54,4 +54,25 @@ func SetupStripeRoutes(app *fiber.App) {
 		})
 	})
 
+	app.Post("/payment-success", func(c *fiber.Ctx) error {
+		var piSuccess struct {
+			ID     string `json:"id"`
+			Amount int    `json:"amount"`
+		}
+
+		c.BodyParser(&piSuccess)
+		fmt.Println(piSuccess)
+		pi, err := paymentintent.Get(piSuccess.ID, &stripe.PaymentIntentParams{})
+		fmt.Println(pi.Status)
+
+		if pi.Status == stripe.PaymentIntentStatusSucceeded {
+			return c.JSON(fiber.Map{"status": "sucess"})
+		}
+		if err != nil {
+			fmt.Println(err)
+		}
+		return c.JSON(fiber.Map{"status": "fail"})
+
+	})
+
 }
