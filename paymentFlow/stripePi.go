@@ -3,20 +3,19 @@ package paymentFlow
 import (
 	"fmt"
 	"strconv"
+	"wut/auth"
+	"wut/db"
+	"wut/sqlc"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/stripe/stripe-go/v75"
 	"github.com/stripe/stripe-go/v75/paymentintent"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func SetupPaymentFlow(app *fiber.App) {
 	// This is your test secret API key.
 	stripe.Key = "sk_test_51NXI07EcYmsYVNOjkRA66IiQgIDt1ykK42IKEhqFpI7Z8R53ziPcNJ3hlWlqme3YRXtKL8ZmFobslouN1Trr5WdU009OzHQyiM"
-	app.Get("/account-creation-success", func(c *fiber.Ctx) error {
-
-		return c.JSON(fiber.Map{"email": c.Query("email"), "username": c.Query("username"), "pi": c.Query("payment_intent")})
-	})
-
 	app.Post("/create-payment-intent", func(c *fiber.Ctx) error {
 		var req struct {
 			DonationAmt int64  `json:"donationAmt"`
@@ -57,8 +56,10 @@ func SetupPaymentFlow(app *fiber.App) {
 
 	app.Post("/payment-success", func(c *fiber.Ctx) error {
 		var piSuccess struct {
-			ID     string `json:"id"`
-			Amount int    `json:"amount"`
+			ID       string `json:"id"`
+			Amount   int32  `json:"amount"`
+			Email    string `json:"receipt_email"`
+			Username string `json:"username"`
 		}
 
 		c.BodyParser(&piSuccess)
@@ -67,7 +68,19 @@ func SetupPaymentFlow(app *fiber.App) {
 		fmt.Println(pi.Status)
 
 		if pi.Status == stripe.PaymentIntentStatusProcessing || pi.Status == stripe.PaymentIntentStatusSucceeded {
-			return c.JSON(fiber.Map{"status": "sucess"})
+			err = db.Db.CreateUser(c.Context(), sqlc.CreateUserParams{
+				Email:           piSuccess.Email,
+				Username:        piSuccess.Username,
+				PaymentIntent:   piSuccess.ID,
+				DonationInCents: piSuccess.Amount,
+			})
+			//I could do some code to check if the email already exists and charge the user anyways while displaying a ty message or something, but that's boring
+			if err != nil {
+				fmt.Println(err)
+				return c.JSON(fiber.Map{"status": "fail"})
+
+			}
+			return c.JSON(fiber.Map{"status": "success"})
 		}
 		if err != nil {
 			fmt.Println(err)
@@ -75,6 +88,38 @@ func SetupPaymentFlow(app *fiber.App) {
 		return c.JSON(fiber.Map{"status": "fail"})
 
 	})
-	// app.Post("/")
+	app.Post("/init-password", func(c *fiber.Ctx) error {
+		var initPassword struct {
+			Password string `json:"assword"`
+			Pi       string `json:"paymentId"`
+		}
+		c.BodyParser(&initPassword)
+		fmt.Println("init: ", initPassword)
+		passHash, err := bcrypt.GenerateFromPassword([]byte(initPassword.Password), bcrypt.DefaultCost)
+		if err != nil {
+			fmt.Println("Error Hashing Password: ", err)
+			return c.JSON(fiber.Map{"message": "error hashing password"})
+		}
+		id, err := db.Db.InitPass(c.Context(), sqlc.InitPassParams{PaymentIntent: initPassword.Pi, PassHash: passHash})
+		if err != nil {
+			fmt.Println("Error Initing Password: ", err)
+			return c.SendString(`{"message":"Did you already set your password?"}`)
+		}
+		// fmt.Println(id)
+		cookie, err := auth.CreateCookieJWT(id)
+		if err != nil {
+			fmt.Println("cookie creation error: %w", err)
+			return c.JSON(fiber.Map{"error": "Error Signing You in. Please Try Again"})
+		}
+		c.Cookie(cookie)
+		// return c.JSON(fiber.Map{"status": "success"})
+		return c.Redirect("http://localhost:5173/terms-of-service")
+
+	})
+
+	// app.Get("/super-cool-kids", func (c *fiber.Ctx) error {
+
+	// 	return c.SendFile()
+	// })
 
 }

@@ -23,6 +23,31 @@ func SetupDBConnection() {
 	Db = sqlc.New(PostgresPool)
 }
 
+// func CreateAuthJWT() (*fiber)
+// {}
+
+// func createCookieJWT(user *ent.User) (*fiber.Cookie, error) {
+// 	today := time.Now()
+// 	expireDate := today.Add(time.Hour * 24 * 15)
+// 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
+// 		IssuedAt:  jwt.NewNumericDate(today),
+// 		ExpiresAt: jwt.NewNumericDate(expireDate),
+// 		Subject:   fmt.Sprint(user.ID)})
+// 	signedToken, err := token.SignedString(ecret)
+// 	if err != nil {
+// 		fmt.Println("Error Signing Token: %w", err)
+// 		return nil, fmt.Errorf("server couldn't sign token, try again later or contact us by email")
+// 	}
+
+// 	return &fiber.Cookie{
+// 		Name:     "ses",
+// 		Value:    signedToken,
+// 		Expires:  expireDate,
+// 		HTTPOnly: !isTest,
+// 		Secure:   !isTest,
+// 	}, nil
+// }
+
 // func (dbI *DbClient) CreateUser(ctx context.Context, email, password string) (*ent.User, error) {
 
 // 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)

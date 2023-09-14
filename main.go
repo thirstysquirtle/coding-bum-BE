@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"os"
 	"wut/db"
 
 	"fmt"
@@ -12,6 +13,7 @@ import (
 )
 
 func main() {
+	setDevEnv()
 	var err error
 	app := fiber.New()
 	app.Use(cors.New(cors.Config{
@@ -42,4 +44,15 @@ func main() {
 	fmt.Println("exit")
 	// fmt.Println(time.Now().Add(time.Hour * 24 * 14))
 	db.PostgresPool.Close()
+}
+
+func setDevEnv() {
+	if os.Getenv("IsTest") == "true" {
+		os.Setenv("secret1", "testSecret")
+	}
+
+	_, found := os.LookupEnv("secret1")
+	if !found {
+		panic("No secret Env Variable Found!")
+	}
 }
