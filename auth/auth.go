@@ -11,12 +11,16 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func SetupLoginRoutes(app *fiber.App) {
+func SetupAuthRoutes(app *fiber.App) {
 	SetupCustomAuth(app)
-	fmt.Println("Test")
+	// app.Get("/self-ranking", func(c *fiber.Ctx) error {
+	// 	db.Db.GetUserPos(c.Context())
+	// 	return c.JSON(fiber.Map{"position": position})
+	// })
+	// fmt.Println("Test")
 }
 
-func CreateCookieJWT(userId int32) (*fiber.Cookie, error) {
+func CreateLoginCookies(userId int32) ([]*fiber.Cookie, error) {
 	today := time.Now()
 	expireDate := today.Add(time.Hour * 24 * 15)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
@@ -29,11 +33,17 @@ func CreateCookieJWT(userId int32) (*fiber.Cookie, error) {
 		return nil, fmt.Errorf("server couldn't sign token, try again later or contact us by email")
 	}
 
-	return &fiber.Cookie{
-		Name:     "ses",
-		Value:    signedToken,
-		Expires:  expireDate,
-		HTTPOnly: !isTest,
-		Secure:   !isTest,
-	}, nil
+	return []*fiber.Cookie{
+		{
+			Name:     "ses",
+			Value:    signedToken,
+			Expires:  expireDate,
+			HTTPOnly: true,
+			Secure:   true,
+		},
+		{
+			Name:     "loggedIn",
+			Value:    "true",
+			Expires:  expireDate,
+			HTTPOnly: false}}, nil
 }

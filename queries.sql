@@ -9,3 +9,12 @@ UPDATE users SET pass_hash = $2 WHERE email = $1;
 
 -- name: InitPass :one
 UPDATE users SET pass_hash=$2 WHERE payment_intent=$1 AND pass_hash IS NULL RETURNING id;
+
+-- name: CountUsers :one
+SELECT COUNT(id) FROM users;
+
+-- name: GetPageOf20Users :many
+SELECT ROW_NUMBER() OVER (ORDER BY id), username, donation_in_cents, created_date FROM users ORDER BY id ASC LIMIT 20 OFFSET ($1 - 1) * 20;
+
+-- name: GetUserPos :one
+SELECT COUNT(id) FROM users WHERE id<=$1;

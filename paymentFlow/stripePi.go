@@ -106,14 +106,15 @@ func SetupPaymentFlow(app *fiber.App) {
 			return c.SendString(`{"message":"Did you already set your password?"}`)
 		}
 		// fmt.Println(id)
-		cookie, err := auth.CreateCookieJWT(id)
+		cookies, err := auth.CreateLoginCookies(id)
 		if err != nil {
 			fmt.Println("cookie creation error: %w", err)
 			return c.JSON(fiber.Map{"error": "Error Signing You in. Please Try Again"})
 		}
-		c.Cookie(cookie)
-		// return c.JSON(fiber.Map{"status": "success"})
-		return c.Redirect("http://localhost:5173/terms-of-service")
+		for _, cookie := range cookies {
+			c.Cookie(cookie)
+		}
+		return c.JSON(fiber.Map{"status": "success"})
 
 	})
 
