@@ -25,6 +25,11 @@ jobs:
       with:
         go-version: 'stable'
         check-latest: true
+    - name: Install SQLC
+      run: | 
+        go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest 
+        && go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest 
+        && sqlc generate
 
     - name: Build
       run: GOOS=linux GOARCH=arm64 go build -v -o wutArm ./
