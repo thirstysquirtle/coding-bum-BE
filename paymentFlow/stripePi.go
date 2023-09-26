@@ -1,6 +1,7 @@
 package paymentFlow
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"wut/auth"
@@ -8,6 +9,7 @@ import (
 	"wut/sqlc"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stripe/stripe-go/v75"
 	"github.com/stripe/stripe-go/v75/paymentintent"
 	"golang.org/x/crypto/bcrypt"
@@ -74,9 +76,17 @@ func SetupPaymentFlow(app *fiber.App) {
 				PaymentIntent:   piSuccess.ID,
 				DonationInCents: piSuccess.Amount,
 			})
-			//I could do some code to check if the email already exists and charge the user anyways while displaying a ty message or something, but that's boring
+			var pgErr *pgconn.PgError
 			if err != nil {
-				fmt.Println(err)
+				if errors.As(err, &pgErr) {
+					if pgErr.Code == "23505" && pgErr.ConstraintName == "users_email_key" {
+						db.Db.AddToBalance(c.Context(), sqlc.AddToBalanceParams{Email: piSuccess.Email, AddAmount: piSuccess.Amount})
+						fmt.Println("Email Already Exists, DonationAmt Updated")
+						return c.JSON(fiber.Map{"status": "fail", "message": "Email already has an account, Donation Amount has been updated"})
+					}
+				} else {
+					fmt.Println(err)
+				}
 				return c.JSON(fiber.Map{"status": "fail"})
 
 			}
@@ -114,13 +124,8 @@ func SetupPaymentFlow(app *fiber.App) {
 		for _, cookie := range cookies {
 			c.Cookie(cookie)
 		}
-		return c.JSON(fiber.Map{"status": "success"})
+		return c.JSON(fiber.Map{"go-to": "/super-cool-kids"})
 
 	})
-
-	// app.Get("/super-cool-kids", func (c *fiber.Ctx) error {
-
-	// 	return c.SendFile()
-	// })
 
 }

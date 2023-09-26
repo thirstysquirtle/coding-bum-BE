@@ -23,6 +23,13 @@ func SetupDBConnection() {
 	Db = sqlc.New(PostgresPool)
 }
 
+func setEnv() {
+	if os.Getenv("IsTest") == "true" {
+		os.Setenv("DATABASE_URL", "postgres://postgres@localhost:5432/test1?sslmode=disable")
+
+	}
+}
+
 // func CreateAuthJWT() (*fiber)
 // {}
 
@@ -85,10 +92,3 @@ func SetupDBConnection() {
 // 		return nil, fmt.Errorf("password does not match")
 // 	}
 // }
-
-func setEnv() {
-	if os.Getenv("IsTest") == "true" {
-		os.Setenv("DATABASE_URL", "postgres://postgres@localhost:5434/test1?sslmode=disable")
-
-	}
-}

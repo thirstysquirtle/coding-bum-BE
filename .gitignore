@@ -6,3 +6,7 @@ ent/*
 svelte_build/
 svelte_build/**
 sqlc/**
+builds/**
+notes/**
+.DS*
+auth/3rd*

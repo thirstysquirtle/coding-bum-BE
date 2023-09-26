@@ -5,10 +5,14 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 	"time"
+	"wut/auth"
 	"wut/db"
 	"wut/paymentFlow"
+	"wut/sqlc"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -20,29 +24,59 @@ func main() {
 	var err error
 	app := fiber.New()
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     "http://localhost:5173, http://localhost:3000",
+		AllowOrigins:     "https://thecodingbum.com, http://localhost:5173",
 		AllowCredentials: true,
 	}))
 	db.SetupDBConnection()
-	// auth.SetupAuthRoutes(app, dbClient)
+	auth.SetupAuthRoutes(app)
 	paymentFlow.SetupPaymentFlow(app)
 
 	// app.Static("/", "svelte_build/")
-
+	const entriesPerPage = 18
 	app.Get("/super-cool-kids-list", requireAuth, func(c *fiber.Ctx) error {
 		userPos, err := db.Db.GetUserPos(c.Context(), int32(c.Locals("uid").(int)))
 		if err != nil {
 			fmt.Println("Error Querying Database: ", err)
 			return c.SendStatus(500)
 		}
-		pageNum := math.Ceil(float64(userPos) / 20)
-		users, err := db.Db.GetPageOf20Users(c.Context(), pageNum)
+		pageNum := math.Ceil(float64(userPos) / entriesPerPage)
+		users, err := db.Db.GetNUsers(c.Context(), sqlc.GetNUsersParams{Page: pageNum, N: entriesPerPage})
 		if err != nil {
 			fmt.Println("Error Querying Database: ", err)
 			return c.SendStatus(500)
 		}
-		return c.JSON(fiber.Map{"you": userPos, "coolKids": users})
+		totalPages, _ := db.Db.CountUsers(c.Context())
+		totalPages = int64(math.Ceil(float64(totalPages) / entriesPerPage))
+
+		return c.JSON(fiber.Map{"you": userPos, "coolKids": users, "totalPages": totalPages, "currentPage": pageNum})
 	})
+	app.Get("/super-cool-kids-page", requireAuth, func(c *fiber.Ctx) error {
+		requestedPage := c.Query("page", "nah")
+		if requestedPage == "nah" {
+			fmt.Println("Query Param Error")
+			c.SendString(`{"error":"error"}`)
+		}
+		users, err := db.Db.GetNUsers(c.Context(), sqlc.GetNUsersParams{Page: requestedPage, N: entriesPerPage})
+		if err != nil {
+			fmt.Println("DB Query Err")
+			c.SendString(`{"error":"error"}`)
+		}
+		return c.JSON(fiber.Map{"coolKids": users})
+
+	})
+
+	app.Get("/test", func(c *fiber.Ctx) error {
+		fmt.Println("asda")
+		return c.SendString("fu")
+	})
+
+	termSignal := make(chan os.Signal, 1)
+	signal.Notify(termSignal, syscall.SIGTERM)
+	go func() {
+		<-termSignal
+		fmt.Println("Gracefully shutting down...")
+		_ = app.Shutdown()
+	}()
 
 	err = app.Listen(":3000")
 	fmt.Println("wut: %w", err)
@@ -96,8 +130,9 @@ func requireAuth(c *fiber.Ctx) error {
 	if err != nil || loggedIn == "" {
 		// fmt.Println(err, c.Cookies("ses"))
 		clearCookies(c, "ses", "loggedIn")
+		fmt.Println("Unauthenticated Request")
+		return c.SendString(`{"go-to":"/login"}`)
 
-		return c.Redirect("http://localhost:5173/login")
 	}
 	if token.Valid {
 		sub, _ := token.Claims.GetSubject()
@@ -107,15 +142,16 @@ func requireAuth(c *fiber.Ctx) error {
 			fmt.Println("Token Subject Error: ", token.Raw)
 			// c.ClearCookie("ses", "loggedIn")
 			clearCookies(c, "ses", "loggedIn")
-			return c.SendString(`{"redirecasdt":"/lsogin"}`)
+			return c.SendString(`{"go-to":"/login"}`)
 		}
-		c.Locals("uid", userId)
+		c.Locals("uid", int(userId))
 		return c.Next()
 	}
 	fmt.Println("Unexpected results, checkLoginCookies")
 	// c.ClearCookie("ses", "loggedIn")
 	clearCookies(c, "ses", "loggedIn")
-	return c.SendString(`{"rediasdrect":"/logian"}`)
+	return c.SendString(`{"go-to":"/login"}`)
+
 }
 
 func clearCookies(c *fiber.Ctx, key ...string) {
